@@ -1,0 +1,117 @@
+# review-pr.toml — per-repository rules for the /review-pr deterministic checks.
+#
+# Copy to <repo>/.claude/review-pr.toml (or <repo>/review-pr.toml) and keep what applies.
+# Every key is optional. Regexes use Python syntax; prefer single-quoted TOML strings ('...')
+# so backslashes need no escaping.
+
+remote = "origin"
+main_branch = "main"            # omit to autodetect from origin/HEAD
+# pr_base = "main"              # the branch every PR must target (defaults to main_branch)
+compare_branches = ["develop"]  # other long-lived lines whose migrations also count toward the ceiling
+
+min_free_memory_gb = 2          # --run-tests postpones the tests below this much free RAM
+test_timeout_minutes = 30
+
+[naming]
+branch = '^[A-Z]+-\d+'                                        # e.g. PROJ-123
+commit = '^(feat|fix|chore|docs|refactor|test|perf)(\([^)]*\))?!?: [A-Z]+-\d+ '
+pr_title = '\b[A-Z]+-\d+\b'
+hint = "every change has a ticket, and the ticket id goes in the branch, the commits and the PR title"
+
+# ---------------------------------------------------------------- migrations
+# Each set: kind = "flyway" | "golang-migrate", or your own pattern with the named groups
+# (?P<dir>...) and (?P<ver>...) — and optionally (?P<name>...), which lets two files share a
+# version on purpose (up/down pairs).
+# Checks: new version must be ABOVE the highest of main + compare_branches; no duplicate
+# version; a migration already on main must not be edited/renamed/deleted (immutable); and no
+# other open PR may create the same version (git merges both cleanly, the boot does not).
+
+[[migrations]]
+name = "api"
+kind = "flyway"
+# immutable = true
+
+# [[migrations]]
+# name = "worker"
+# pattern = '(?P<dir>services/worker/migrations)/(?P<ver>\d+)_(?P<name>[^/]+?)\.(?:up|down)\.sql$'
+
+# ---------------------------------------------------------------- read-only APIs
+# A third-party API this codebase may only READ (production orders, payments, ...).
+# A line that cites `resource` together with a write verb is a BLOCK; the same file citing both
+# on different lines is a WARN. `write` adds patterns to the built-in verbs (POST/PUT/PATCH/DELETE
+# in the usual HTTP client and Spring forms).
+
+[[read_only_apis]]
+name = "payments provider"
+resource = '/api/payments/|payments\.example\.com'
+write = '/(cancel|refund|capture|settle)\b'
+reason = "money moves for real customers and cannot be undone: GET only"
+
+# ---------------------------------------------------------------- secrets
+# Built in: private keys, GitHub/AWS/Google/Slack/Stripe/Anthropic/OpenAI keys, committed .env
+# and keystore files, and a WARN for `password = "literal"`-style assignments.
+
+[secrets]
+patterns = [
+  { name = "vendor app token", pattern = '\bvendorkey-[a-z0-9]+-[A-Z]{6}\b' },
+]
+ignore_paths = ['^docs/fixtures/']
+
+# ---------------------------------------------------------------- path flags
+# Touching these paths raises a note for the reviewer (info), a warning (warn) or a blocker (block).
+
+[[path_flags]]
+name = "ui"
+pattern = '^apps/web/src/(pages|components)/.*\.tsx$'
+severity = "info"
+message = "UI files: the reviewer compares them with the design reference"
+
+[[path_flags]]
+name = "ci"
+pattern = '^\.github/workflows/'
+severity = "warn"
+message = "touches CI: new jobs cost Actions minutes"
+exclude_tests = false
+
+# ---------------------------------------------------------------- tests (stage 2)
+# Only what the change touches, never the whole suite.
+#   maven   : touched test classes + <Class>*Test/IT of each touched production class + guards
+#   go      : gofmt -l, go vet and go test of the touched packages (module found by go.mod)
+#   node    : tsc --noEmit, eslint of the touched files, jest --findRelatedTests or vitest related
+#   command : anything else; "{files}" expands to the matching files, relative to cwd
+
+[[tests]]
+kind = "maven"
+# modules = ["libs/common", "services/api"]      # default: nearest pom.xml of each touched file
+guards = { "services/api" = ["ArchitectureTest"] } # always run when production code of the module changes
+when_path = [{ pattern = '/db/migration/', tests = ["MigrationVersionsTest"] }]
+# offline = true
+# extra_args = ["-Dspotless.check.skip=true"]
+
+[[tests]]
+kind = "go"
+
+[[tests]]
+kind = "node"
+dir = "apps/web"
+runner = "vitest"      # jest | vitest | none
+max_workers = 2        # jest only: leave room for whatever else runs on the machine
+
+[[tests]]
+kind = "command"
+name = "pytest"
+when = '^backend/.*\.py$'
+cwd = "backend"
+cmd = ["python", "-m", "pytest", "-q", "{files}"]
+
+# ---------------------------------------------------------------- reviewer (stage 3)
+# Passed through to the clean-context reviewer prompt.
+
+[reviewer]
+context = "Booking platform: Java/Spring services, a Go worker, a React web app."
+design_reference = "docs/design/screens/"
+rules = [
+  "Personal data (name, tax id, e-mail, address, phone, card) never in logs, error messages or test fixtures.",
+  "Message queues: a new queue is declared in the consumer AND in the shared topology class.",
+  "Existing patterns in the codebase win over personal preference: do not propose restyling them.",
+]

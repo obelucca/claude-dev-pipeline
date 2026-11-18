@@ -1,0 +1,15 @@
+{
+  "name": "obelucca",
+  "description": "Claude Code plugins by obelucca.",
+  "owner": {
+    "name": "obelucca",
+    "url": "https://github.com/obelucca"
+  },
+  "plugins": [
+    {
+      "name": "dev-pipeline",
+      "source": "./",
+      "description": "PR review pipeline (deterministic checks by script + clean-context reviewer) and parallel task orchestration in worktrees, with role agents per model."
+    }
+  ]
+}
