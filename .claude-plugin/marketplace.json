@@ -9,7 +9,7 @@
     {
       "name": "dev-pipeline",
       "source": "./",
-      "description": "PR review pipeline (deterministic checks by script + clean-context reviewer) and parallel task orchestration in worktrees, with role agents per model."
+      "description": "PR review pipeline (deterministic checks by script + clean-context reviewers, including security) and parallel task orchestration in worktrees, with role agents per model, shared project rules and enforced read-only agents."
     }
   ]
 }

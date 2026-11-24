@@ -43,7 +43,8 @@ templates are in `references/prompts.md` — read them before launching the firs
 The coordinator does no grunt work. Use the role agents of this plugin, or `Agent` with a model:
 
 - **Opus** (`pipeline-dev-heavy`) — money, payments, integrations with external systems of
-  record, auth, migrations, heavy design, end-to-end proof, and every reviewer.
+  record, auth, migrations, heavy design, end-to-end proof, and every reviewer (including
+  `pipeline-security`).
 - **Sonnet** (`pipeline-dev`) — front end, tests, scaffolding, extraction, mechanical edits, chores.
 - On repeated 429/529, ask before switching models.
 
@@ -87,7 +88,9 @@ counts) and the proposed text for the living document. If something is missing, 
 
 1. Launch a **new** reviewer `Agent` (`pipeline-reviewer`, no worktree of its own) with the
    review template, pointing to the worktree and the commit. The reviewer only reads: it does not
-   run tests (the dev reported the counts), edit or delegate.
+   run tests (the dev reported the counts), edit or delegate. When the architect marked the task
+   `security: yes` (or the diff touches auth, personal data, payments, endpoints, webhooks or
+   secrets), launch `pipeline-security` in the same message, with the same inputs.
 2. Findings → `SendMessage` to the **same** dev to fix with `--amend` and report the new hash.
    At most 2 rounds; if it persists, escalate to the user with the reviewer's report.
 3. A coverage-only finding does not go back to the dev: the coordinator closes it at integration.

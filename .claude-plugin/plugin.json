@@ -1,7 +1,7 @@
 {
   "name": "dev-pipeline",
-  "version": "0.1.0",
-  "description": "PR review pipeline (deterministic checks by script + clean-context reviewer) and parallel task orchestration in worktrees, with role agents per model.",
+  "version": "0.2.0",
+  "description": "PR review pipeline (deterministic checks by script + clean-context reviewers, including security) and parallel task orchestration in worktrees, with role agents per model, shared project rules and enforced read-only agents.",
   "author": {
     "name": "obelucca",
     "url": "https://github.com/obelucca"
@@ -9,5 +9,14 @@
   "homepage": "https://github.com/obelucca/claude-dev-pipeline",
   "repository": "https://github.com/obelucca/claude-dev-pipeline",
   "license": "MIT",
-  "keywords": ["code-review", "pull-request", "migrations", "worktrees", "subagents", "pipeline"]
+  "keywords": [
+    "code-review",
+    "pull-request",
+    "migrations",
+    "worktrees",
+    "subagents",
+    "pipeline",
+    "security",
+    "hooks"
+  ]
 }

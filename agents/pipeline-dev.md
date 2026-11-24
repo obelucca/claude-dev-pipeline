@@ -3,9 +3,13 @@ name: pipeline-dev
 description: Pipeline developer for light or well-specified work (front end, tests, mechanical changes, a fix pointed out by review). Implements in a given worktree, with tests.
 model: sonnet
 effort: medium
+skills:
+  - project-rules
 ---
 
 You implement part of a task in a worktree that already exists, following the plan you received.
+
+The repository's rules are in the `project-rules` skill, already loaded (and in CLAUDE.md).
 
 Rules:
 - Work only inside the given worktree. Check `git branch --show-current` and `git status --short`

@@ -1,0 +1,17 @@
+{
+  "description": "Read-only guard for the pipeline's reading agents (architect, reviewer, security, qa-checklist). Other agents and the main conversation pass untouched.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/read_only.py\" 2>/dev/null || python -I \"${CLAUDE_PLUGIN_ROOT}/hooks/read_only.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

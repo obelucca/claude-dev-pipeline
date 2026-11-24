@@ -2,7 +2,7 @@
 
 [Read in English](README.md)
 
-Um plugin do Claude Code com duas skills e seis agentes por papel. Ele saiu do dia a dia de um
+Um plugin do Claude Code com duas skills e sete agentes por papel. Ele saiu do dia a dia de um
 monorepo com vários serviços (Java, Go, React Native, React), que várias pessoas e várias sessões
 do Claude usam ao mesmo tempo.
 
@@ -46,7 +46,9 @@ Como plugin (recomendado):
 ```
 
 Ou copie `skills/*` para `<repo>/.claude/skills/` (ou `~/.claude/skills/`) e `agents/*` para
-`.claude/agents/`.
+`.claude/agents/`. Copiando assim, o hook de só leitura não fica registrado: inclua o
+`hooks/read_only.py` no `.claude/settings.json`, em `PreToolUse` / `Bash` (veja o
+[`hooks/hooks.json`](hooks/hooks.json)).
 
 Requisitos: `git` 2.38+, Python 3.11+ e o GitHub CLI (`gh`), para os dados e os comentários do PR.
 
@@ -64,6 +66,25 @@ rodam as checagens de nome, base do PR, conflito e segredo.
 - `[[tests]]`: como testar só o que mudou, com `maven`, `go`, `node` (jest/vitest) ou `command`.
 - `[reviewer]`: contexto do projeto, regras do repositório e a referência de design para o prompt
   do revisor.
+
+### Regras do projeto, num lugar só
+
+Copie o [`templates/project-rules/SKILL.md`](templates/project-rules/SKILL.md) para
+`<repo>/.claude/skills/project-rules/SKILL.md` e escreva ali as suas regras. Todo agente pré-carrega
+essa skill pelo `skills:` (se ela não existir, é ignorada sem erro). Assim as regras que valem para
+todos os papéis ficam num arquivo só, em vez de repetidas em cada agente, no prompt do revisor e em
+cada brief de tarefa. Os agentes também carregam o seu `CLAUDE.md`; deixe no `project-rules` o que
+um subagente não pode deixar de ver.
+
+### Agente de só leitura é garantido, não pedido
+
+`tools: Read, Grep, Glob, Bash` não deixa um agente só de leitura: o Bash escreve. O plugin registra
+um hook `PreToolUse` ([`hooks/read_only.py`](hooks/read_only.py)) que olha o `agent_type` de cada
+chamada de Bash e, só para o arquiteto, os revisores e o QA de lista, libera comandos de leitura
+(`git` de leitura, `grep`, `sed -n` etc.; o perfil de QA soma `curl` para localhost e
+`docker ps/logs`). O resto é negado com o motivo, e o agente reporta NÃO VERIFICADO em vez de
+procurar um contorno. A conversa principal e os outros agentes passam sem mudança. Seus próprios
+agentes de leitura entram no `AGENT_PROFILES`.
 
 ## Usar
 
@@ -91,6 +112,7 @@ O código de saída é 0 sem bloqueio, 2 com pelo menos um bloqueio e 1 para err
 | `pipeline-dev` | Sonnet, medium | trabalho leve ou bem especificado |
 | `pipeline-dev-heavy` | Opus, medium | dinheiro, pagamento, autenticação, migration |
 | `pipeline-reviewer` | Opus, high | revisão em contexto limpo; só lê |
+| `pipeline-security` | Opus, high | revisão de segurança do diff em contexto limpo (IDOR, enumeração, injeção, segredo); só lê |
 | `pipeline-qa-checklist` | Haiku, medium | lista fechada de critérios objetivos |
 | `pipeline-qa-flow` | Sonnet, high | ponta a ponta na pilha local, procurando o caso que quebra |
 

@@ -31,6 +31,7 @@ here); without it only the generic checks run.
 | heavy dev (money, payments, auth, migrations, cross-service) | `pipeline-dev-heavy` | Opus, medium |
 | checks and tests (phases 1 and 2) | script | no model |
 | reviewer (phase 3) | `pipeline-reviewer` | Opus, high |
+| security reviewer (phase 3, when the diff touches a sensitive surface) | `pipeline-security` | Opus, high |
 | closed-list QA | `pipeline-qa-checklist` | Haiku, medium |
 | flow QA | `pipeline-qa-flow` | Sonnet, high |
 
@@ -44,7 +45,8 @@ Installed as a plugin, the agent types are namespaced (`dev-pipeline:pipeline-re
   `git status --short` of the tree being measured: a test count that dropped may be another branch.
 - **Tests only for what the change touches.** The script builds the plan that way. The full
   suite does not belong here.
-- **The reviewer only reads.** It does not edit, run tests or launch subagents.
+- **The reviewers only read.** They do not edit, run tests or launch subagents; for Bash, the
+  plugin's read-only hook enforces it.
 - **No reviewer finding reaches the report until you verify it in the code.** The reviewer is
   wrong in the same confident tone in which it is right.
 - **Never print a secret's value or personal data.** The script reports only file:line.
@@ -109,6 +111,13 @@ context, repo rules, design reference) plus any rule in the repo's `CLAUDE.md` t
 Large PR (more than ~1,500 added lines, or back end and front end together): one reviewer per
 area, in the same message, each with only its files.
 
+**Security reviewer, in the same message as the reviewer**, when the diff touches authentication
+or authorization, personal data, payments, a new or changed endpoint, a webhook, a queue consumer,
+a deep link, build-time public variables, raw SQL or uploads (or when a `path_flags` entry you
+named `security*` fired). `subagent_type: "pipeline-security"`, with tree, range and contract, and
+nothing of your own reading. Its findings go through the same verification in phase 4; a verified
+high-severity finding is a blocker.
+
 ## Phase 4 — Synthesis
 
 1. Verify each reviewer finding by reading the cited code. Drop what does not hold (and say how
@@ -132,7 +141,7 @@ area, in the same message, each with only its files.
 - maven: N classes, green | go: ... | web: ... (or "did not run: reason")
 ```
 
-A deterministic BLOCK or a red test → BLOCKED. A verified finding that changes behavior → at
+A deterministic BLOCK, a red test or a verified high-severity security finding → BLOCKED. A verified finding that changes behavior → at
 most APPROVED WITH WARNINGS, and only if it is about coverage.
 
 3. With `--comment`: `gh pr comment <n> --body-file <scratchpad>/rev-<n>.md`, **one** comment,

@@ -3,7 +3,11 @@ name: pipeline-dev-heavy
 description: Pipeline developer for heavy items (money, payments, integrations with systems of record, auth/security, migrations, design that crosses services). Same rules as pipeline-dev, with a larger model.
 model: opus
 effort: medium
+skills:
+  - project-rules
 ---
+
+The repository's rules are in the `project-rules` skill, already loaded (and in CLAUDE.md).
 
 You implement a delicate part of a task in a worktree that already exists, following the plan
 you received. Everything that applies to the regular developer applies:

@@ -2,7 +2,7 @@
 
 [Leia em português](README.pt-BR.md)
 
-A Claude Code plugin with two skills and six role agents, extracted from the daily workflow of a
+A Claude Code plugin with two skills and seven role agents, extracted from the daily workflow of a
 multi-service monorepo (Java, Go, React Native, React) shared by several people and several
 Claude sessions at once.
 
@@ -46,7 +46,9 @@ As a plugin (recommended):
 ```
 
 Or copy `skills/*` into `<repo>/.claude/skills/` (or `~/.claude/skills/`) and `agents/*` into
-`.claude/agents/`.
+`.claude/agents/`. Copied this way, the read-only hook is not registered for you: add
+`hooks/read_only.py` to `.claude/settings.json` under `PreToolUse` / `Bash` (see
+[`hooks/hooks.json`](hooks/hooks.json)).
 
 Requirements: `git` 2.38+, Python 3.11+, and the GitHub CLI (`gh`) for PR data and comments.
 
@@ -63,6 +65,24 @@ you still get the naming, PR base, conflict and secret checks.
   the design, CI files, ...).
 - `[[tests]]` — how to test only what changed: `maven`, `go`, `node` (jest/vitest) or `command`.
 - `[reviewer]` — project context, repository rules and the design reference for the reviewer prompt.
+
+### Project rules, in one place
+
+Copy [`templates/project-rules/SKILL.md`](templates/project-rules/SKILL.md) to
+`<repo>/.claude/skills/project-rules/SKILL.md` and write your rules there. Every agent preloads
+it through `skills:` (a missing skill is skipped silently), so the rules that apply to every role
+live in one file instead of being repeated in each agent, the reviewer prompt and every task
+brief. Agents also load your `CLAUDE.md`; keep in `project-rules` what a subagent must never miss.
+
+### Read-only agents are enforced, not asked
+
+`tools: Read, Grep, Glob, Bash` does not make an agent read-only: Bash can write. The plugin
+registers one `PreToolUse` hook ([`hooks/read_only.py`](hooks/read_only.py)) that looks at the
+`agent_type` of each Bash call and, only for the architect, the reviewers and the checklist QA,
+allows read commands (read-only `git`, `grep`, `sed -n`, ...; the QA profile adds `curl` to
+localhost and `docker ps/logs`). Everything else is denied with the reason, and the agent reports
+NOT VERIFIED instead of looking for a workaround. The main conversation and the other agents pass
+untouched. Add your own read-only agents to `AGENT_PROFILES`.
 
 ## Use
 
@@ -90,6 +110,7 @@ Exit code 0 means no blocker, 2 at least one blocker, 1 a usage error.
 | `pipeline-dev` | Sonnet, medium | light or well-specified work |
 | `pipeline-dev-heavy` | Opus, medium | money, payments, auth, migrations |
 | `pipeline-reviewer` | Opus, high | clean-context review; read-only |
+| `pipeline-security` | Opus, high | clean-context security review of the diff (IDOR, enumeration, injection, secrets); read-only |
 | `pipeline-qa-checklist` | Haiku, medium | closed list of objective criteria |
 | `pipeline-qa-flow` | Sonnet, high | end-to-end on the local stack, hunting the breaking case |
 
